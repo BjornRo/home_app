@@ -1,0 +1,27 @@
+##############
+### Tables ###
+##############
+
+DEFINE TABLE sensor SCHEMAFULL;
+    DEFINE FIELD date ON TABLE sensor TYPE datetime;
+    DEFINE FIELD location ON TABLE sensor TYPE string;
+    DEFINE FIELD device_name ON TABLE sensor TYPE string;
+    DEFINE FIELD data ON TABLE sensor FLEXIBLE TYPE object; # dict[str, float]
+
+DEFINE TABLE error SCHEMAFULL;
+    DEFINE FIELD date ON TABLE error TYPE datetime;
+    DEFINE FIELD location ON TABLE error TYPE string;
+    DEFINE FIELD device_name ON TABLE error TYPE string;
+    DEFINE FIELD log_level ON TABLE error TYPE string ASSERT $value IN ["debug", "info", "warning", "error", "critical"];
+    DEFINE FIELD detail ON TABLE error TYPE string;
+
+###############
+### Indices ###
+###############
+
+DEFINE INDEX sensor_date_index ON TABLE sensor COLUMNS date;
+DEFINE INDEX sensor_name_index ON TABLE sensor COLUMNS device_name;
+DEFINE INDEX sensor_namedate_index ON TABLE sensor FIELDS date, device_name;
+DEFINE INDEX sensor_location_index ON TABLE sensor COLUMNS location;
+
+DEFINE INDEX error_date_index ON TABLE error COLUMNS date;

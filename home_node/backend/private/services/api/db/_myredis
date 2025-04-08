@@ -1,0 +1,37 @@
+from os import environ
+
+from redis.asyncio import Redis
+from utils import fire_forget_coro
+
+
+class _MyRedis(Redis):
+    __slots__ = ()
+
+    def __init__(self, db_index: int, host="redis"):
+        super().__init__(host=host, port=6379, db=db_index, single_connection_client=True)
+
+    async def count(self, key="*", max_count: int = 100) -> int:  # Returns the number of keys in the current database
+        res: list[bytes] = (await self.scan(match=key, count=max_count))[1]  # 1 is scan position: int. Useless for *
+        return len(res)
+
+
+class _OnlineRedis(_MyRedis):
+    __slots__ = ()
+
+    def add(self, key: str, expiry=300):
+        fire_forget_coro(self.set(key, b"", ex=expiry))
+
+
+"""Redis auth"""
+db_jwt = _MyRedis(0, "redisauth")
+db_queries0 = _MyRedis(1, "redisauth")
+db_queries1 = _MyRedis(2, "redisauth")
+
+"""Less time critical"""
+db_sensordata = _MyRedis(int(environ.get("REDIS_DB_DATA", 0)))
+db_register0 = _MyRedis(1)
+db_register1 = _MyRedis(2)
+db_register2 = _MyRedis(3)
+db_login_timeout = _MyRedis(4)
+db_online_users = _OnlineRedis(5)
+# 7 unused

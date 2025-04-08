@@ -1,0 +1,19 @@
+[package]
+name = "ddns"
+version = "0.1.0"
+edition = "2021"
+
+[profile.release]
+debug = false
+lto = true
+opt-level = 3
+
+[dependencies]
+lazy_static = "*"
+local-ip-address = "*"
+rustls = "*"
+serde = { version = "*", features = ["derive"] }
+toml = "*"
+unsafe_unwrap = "*"
+webpki = "*"
+webpki-roots = "*"

@@ -1,0 +1,87 @@
+<script lang="ts">
+    // import type { LayoutData } from "./$types";
+    import { page } from "$app/stores";
+
+    // export let data: LayoutData;
+
+    $: route_id = $page.route.id as string;
+    const pfx = "/admin/users/";
+    const links = [
+        { k: "", v: "Stats" },
+        { k: "get_user", v: "Get user" },
+        { k: "get_all_users", v: "Get all users" },
+        { k: "user_role", v: "User role" },
+    ];
+</script>
+
+<div class="main">
+    <div class="nav">
+        {#each links as { k, v }}
+            <a href="{pfx}{k}" class="nav-item {route_id === `${pfx}${k}` ? 'active' : ''}">{v}</a>
+        {/each}
+    </div>
+    <div class="content">
+        <slot />
+    </div>
+</div>
+
+<style>
+    :root {
+        --bar-height: 48px;
+        --item-width: 140px;
+        --item-spacing: 6px;
+    }
+
+    .main {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+        align-items: stretch;
+    }
+
+    .content {
+        display: flex;
+        align-items: stretch;
+        height: 100%;
+        width: 100%;
+    }
+
+    .nav {
+        display: flex;
+        align-content: stretch;
+        transition: display 2s ease;
+        transition: display 2s ease;
+        padding: 4px;
+        background-color: #a8a8a8;
+        gap: var(--item-spacing);
+        height: var(--bar-height);
+    }
+
+    .nav-item {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 18px;
+        height: 100%;
+        width: var(--item-width);
+        border-radius: 12px;
+        color: rgba(255, 255, 255, 0.988);
+        background-color: #ffffff19;
+        font-family: Verdana, Geneva, Tahoma, sans-serif;
+        box-shadow: 0 0 4px 0 rgba(0, 0, 0, 0.2);
+        transition: background-color 0.2s ease, border-radius 0.5s ease;
+    }
+    .nav-item:hover {
+        background-color: rgba(255, 255, 255, 0.141);
+        border-radius: 16px;
+    }
+
+    .active {
+        background-color: #527e85;
+    }
+
+    .active:hover {
+        background-color: #4e929c;
+    }
+</style>

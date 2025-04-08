@@ -1,0 +1,12 @@
+asyncio-connection-pool
+asyncssh
+bcrypt
+litestar
+msgspec
+orjson
+pyjwt
+pyopenssl
+uvicorn[standard]
+websockets
+python-jose[cryptography]
+cryptography

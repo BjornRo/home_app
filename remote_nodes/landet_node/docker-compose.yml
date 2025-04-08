@@ -1,0 +1,73 @@
+version: "3.9"
+
+x-data-path: &data-path
+  DATA_PATH: /appdata/
+
+services:
+  mqtt:
+    depends_on:
+      - mqtt_auth_proxy
+    container_name: mqtt
+    image: iegomez/mosquitto-go-auth:latest
+    volumes:
+      - ./services/mqtt/mosquitto.cfg:/etc/mosquitto/mosquitto.conf:ro
+      - ./services/mqtt/go-auth.cfg:/etc/mosquitto/conf.d/go-auth.conf:ro
+      - ./services/mqtt/go-auth.so:/mosquitto/go-auth.so
+      - ./certs/mqtt:/certs/mqtt:ro
+      - ./certs/ca:/certs/ca:ro
+    logging:
+      driver: none
+    ports:
+      - 8883:8883
+    restart: unless-stopped
+
+  mqtt_auth_proxy: # To internally authenticate mqtt clients
+    container_name: mqtt_auth_proxy
+    build:
+      context: ./services/mqtt_auth_proxy
+      dockerfile: mqtt_auth_proxy.dockerfile
+    environment:
+      <<: *data-path
+    logging:
+      driver: none
+    volumes:
+      - ./services/mqtt_auth_proxy:/app
+      - ./certs/ca:/certs/ca:ro
+      - ./appdata:/appdata:ro
+    expose:
+      - 80
+    restart: unless-stopped
+    command: python3 -OO main.py
+
+  # sensor_logger:
+  #   container_name: sensor_logger
+  #   restart: unless-stopped
+  #   build:
+  #     context: ./services/sensor_logger
+  #     dockerfile: sensor_logger.dockerfile
+  #   volumes:
+  #     - ./services/sensor_logger:/app
+  #     - ./certs/ca:/certs/ca:ro
+  #     - ./appdata:/appdata
+  #     - /sys:/sys:ro
+  #   depends_on:
+  #     - mqtt
+  #   environment:
+  #     <<: *data-path
+  #   ports:
+  #     - 80:80
+  #   command: python3 -OO main.py
+
+  ntp_server:
+    container_name: ntp_server
+    build:
+      context: ./services/ntp_server
+      dockerfile: ntp_server.dockerfile
+    logging:
+      driver: none
+    volumes:
+      - ./services/ntp_server:/app
+    ports:
+      - 123:123/udp
+    restart: unless-stopped
+    command: python3 -OO main.py

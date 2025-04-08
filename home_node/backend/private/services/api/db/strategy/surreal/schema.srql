@@ -1,0 +1,98 @@
+##############
+### Tables ###
+##############
+
+DEFINE TABLE user SCHEMAFULL;
+    DEFINE FIELD modified_date ON TABLE user TYPE datetime;
+
+    DEFINE FIELD login ON TABLE user TYPE object;
+    DEFINE FIELD login.name ON TABLE user TYPE string;
+    DEFINE FIELD login.pwd ON TABLE user TYPE string;
+    DEFINE FIELD login.mail ON TABLE user TYPE string | null ASSERT $value IS null OR string::is::email($value);
+
+    DEFINE FIELD registration ON TABLE user TYPE object;
+    DEFINE FIELD registration.name ON TABLE user TYPE string;
+    DEFINE FIELD registration.mail ON TABLE user TYPE string | null ASSERT $value IS null OR string::is::email($value);
+    DEFINE FIELD registration.created_by ON TABLE user TYPE record;
+    DEFINE FIELD registration.created ON TABLE user TYPE datetime;
+    DEFINE FIELD registration.number ON TABLE user TYPE int;
+
+    DEFINE FIELD data ON TABLE user TYPE object;
+    DEFINE FIELD data.name ON TABLE user TYPE string;
+
+# user_role:admin,...
+DEFINE TABLE user_role SCHEMAFULL;
+
+DEFINE TABLE token_valid_from SCHEMAFULL;
+    DEFINE FIELD date ON TABLE token_valid_from TYPE datetime;
+
+
+DEFINE TABLE IF NOT EXISTS service SCHEMAFULL;
+  DEFINE FIELD IF NOT EXISTS url ON TABLE service TYPE string;
+  DEFINE FIELD IF NOT EXISTS description ON TABLE service TYPE string;
+  DEFINE FIELD IF NOT EXISTS created ON TABLE service TYPE datetime VALUE time::now();
+
+
+#################
+### Relations ###
+#################
+
+DEFINE TABLE has_role SCHEMAFULL
+    PERMISSIONS
+        FOR select WHERE from<=time::now() AND time::now()<=to
+;
+DEFINE FIELD in ON TABLE has_role TYPE record;
+DEFINE FIELD out ON TABLE has_role TYPE record;
+DEFINE FIELD from ON TABLE has_role TYPE datetime;
+DEFINE FIELD to ON TABLE has_role TYPE datetime;
+DEFINE FIELD given_by ON TABLE has_role TYPE record;
+DEFINE FIELD created ON TABLE has_role TYPE datetime;
+
+DEFINE TABLE IF NOT EXISTS has_service SCHEMAFULL
+  PERMISSIONS
+    FOR select WHERE start<=time::now() AND time::now()<=end
+;
+DEFINE FIELD IF NOT EXISTS in ON TABLE has_service TYPE record<user>;
+DEFINE FIELD IF NOT EXISTS out ON TABLE has_service TYPE record<service>;
+DEFINE FIELD IF NOT EXISTS rwx ON TABLE has_service TYPE number ASSERT $value >= 0 AND $value <= 7;
+DEFINE FIELD IF NOT EXISTS start ON TABLE has_service TYPE datetime;
+DEFINE FIELD IF NOT EXISTS end ON TABLE has_service TYPE datetime;
+DEFINE FIELD IF NOT EXISTS given_by ON TABLE has_service TYPE record<user>;
+DEFINE FIELD IF NOT EXISTS created ON TABLE has_service TYPE datetime;
+
+
+#############
+### EVENT ###
+#############
+
+DEFINE EVENT del_user ON TABLE user_credential WHEN ($after == NONE) THEN {
+    DELETE user WHERE meta::id(id) == meta::id($before.id);
+};
+
+# TODO when role is expired. possible?
+#DEFINE EVENT del_role ON TABLE has_role WHEN ($after == NONE) THEN {
+#    DELETE user_registration WHERE id == $before.id;
+#    DELETE user_data WHERE id == $before.id;
+#};
+
+###############
+### Indices ###
+###############
+
+DEFINE INDEX role_index ON TABLE has_role COLUMNS in, out UNIQUE;
+DEFINE INDEX login_mail_index ON TABLE user COLUMNS login.mail UNIQUE;
+DEFINE INDEX login_name_index ON TABLE user COLUMNS login.name UNIQUE;
+DEFINE INDEX user_data_name_index ON TABLE user COLUMNS user_data.name;
+DEFINE INDEX IF NOT EXISTS has_service_index ON TABLE has_service COLUMNS in, out UNIQUE;
+
+#################
+### Functions ###
+#################
+
+DEFINE FUNCTION fn::tab_str($table: string, $user_id: string) {
+    RETURN type::thing($table, $user_id)
+};
+
+DEFINE FUNCTION fn::tab_rec($table: string, $rec_id: record) {
+    RETURN type::thing($table, meta::id($rec_id))
+};

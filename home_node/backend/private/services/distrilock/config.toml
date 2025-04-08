@@ -1,0 +1,38 @@
+###
+# Lock
+###
+[[servers]]
+name = "register"
+num_stores = 3
+strat = "lock"
+
+###
+# Cache
+###
+[[servers]]
+name = "auth"
+num_stores = 3
+strat = "cache"
+
+[[servers]]
+name = "misc"
+num_stores = 4
+strat = "cache"
+
+[[servers]]
+name = "app"
+num_stores = 2
+strat = "cache"
+
+[[servers]]
+name = "online"
+num_stores = 1
+strat = "cache"
+
+###
+# Counter
+###
+[[servers]]
+name = "count"
+num_stores = 1
+strat = "counter"

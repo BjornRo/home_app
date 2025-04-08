@@ -1,0 +1,22 @@
+import type { AppUser } from "$lib/server/const";
+
+export const load = () => {
+    return { printer: printer };
+};
+
+const printer = (obj: AppUser) => {
+    // { user: target_user.user, data: target_user.data }
+    const split = JSON.stringify(obj, null, 2).split("\n");
+    const max = Math.max(...split.map((part) => part.length));
+    const result: string[] = split.map(
+        (item) =>
+            `<p class="output-row">${item.padEnd(max)}</p>`
+                .replace(
+                    /"(name)": "([^"]*)"/,
+                    '"<span class="color highuser">$1</span>": "<span class="color highusername">$2</span>"'
+                )
+                .replace(/"(roles)"/, '"<span class="color highrole">$1</span>"')
+        // .replace(/"(data)"/, '"<span class="color highdata">$1</span>"')
+    );
+    return result.join("");
+};

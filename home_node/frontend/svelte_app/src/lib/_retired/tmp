@@ -1,0 +1,167 @@
+    // TODO
+    function get_page_rows(page_num: number) {
+        const val = state.ROWS_PER_PAGE * page_num;
+        return state.all_rows.slice(val - state.ROWS_PER_PAGE, val + 1);
+    }    
+
+    const change_page_btn = (event: Event) => {
+        const tag = event.target as HTMLButtonElement | null;
+        if (tag) {
+            const increment = tag.classList.contains("right");
+            let val = 0;
+            if (increment) {
+                if (state.current_page_number < MAX_PAGES) {
+                    val = 1;
+                }
+            } else if (1 < state.current_page_number) {
+                val = -1;
+            }
+            if (val !== 0) {
+                current_page_num += val;
+                state.current_page_number += val;
+                current_page_rows = get_page_rows(current_page_num);
+            }
+        }
+    };
+
+    export let table_row_callback = (user: User) => {};
+
+
+
+    const validate_search_update = () => {
+        const input_text = input_element.value.toLowerCase();
+        input_element.value = input_text;
+        validated_input = {};
+        if (input_text.length >= 4) {
+            if (input_text.includes("@")) {
+                delete validated_input.name;
+                delete validated_input.user_id;
+                if (validate_mail(input_text)) {
+                    validated_input.mail = input_text;
+                }
+            } else {
+                delete validated_input.mail;
+                if (validate_name_length(input_text)) {
+                    validated_input.name = input_text;
+                }
+                if (validate_guid(input_text)) {
+                    validated_input.user_id = input_text;
+                }
+            }
+        }
+    };
+
+    const search_remove_text = () => {
+        input_element.value = "";
+        validated_input = {};
+    };
+
+    const search_history_btn_click = (history: PageNumRows) => {
+        table_state.current_page_rows = history;
+        search_history_popup_visible = false;
+    };
+
+    const fetch_search = () => {
+        if (Object.keys(validated_input).length === 0) {
+            alert("invalid input");
+            return;
+        }
+        input_is_valid = false;
+        search_history_popup_visible = false;
+        validated_input = {};
+    };
+
+
+    /**
+     * 
+     * 
+     */
+
+    
+    const TABLE_STATE = {
+        ROWS_PER_PAGE: data.rows_per_page, // Fixed
+        headers: generate_headers(get(is_mobile_view)),
+        page: 1,
+        rows: { "1": self.generate_rows(data.users) } as PageNumRows,
+        display_count: { text: "total", count: data.users_count },
+
+        generate_rows(users: User[]): UserRows {
+            return users.map((user) => {
+                const row: { [key in HeaderKeys]: any } = {
+                    user: [user.login.name, user.user_id],
+                    namemail: [user.data.name, user.login.mail],
+                    role: user.roles[0],
+                    created: user.registration.created,
+                };
+                return [user, row];
+            });
+        },
+    };
+
+    // State functions
+    const TABLE_F = {
+        row_click: (user: User) => (STATE.selected_user = user),
+        fetch_new_page: async (new_page: number): Promise<UserRows> => {
+            // Should only apply for all_users as it is lazy loaded. Search should be eager load.
+            // Page 1 indexed -> decrease new_page. For example page 2. Offset 10, to start at 10 and pick 10.
+            const resp = await check_creds_then_fetch(
+                HTTP_METHOD.GET,
+                `user?limit=${TABLE.ROWS_PER_PAGE}&offset=${(new_page - 1) * TABLE.ROWS_PER_PAGE}`
+            );
+            if (!resp.ok) {
+                throw `Could not fetch new page (Status: ${resp.status}): ${await resp.json()}`;
+            }
+            const new_rows: User[] = await resp.json();
+            users_to_mapping(new_rows);
+            return TABLE_F.generate_rows(new_rows);
+        },
+        generate_rows(users: User[]): UserRows {
+            return users.map((user) => {
+                const row: { [key in HeaderKeys]: any } = {
+                    user: [user.login.name, user.user_id],
+                    namemail: [user.data.name, user.login.mail],
+                    role: user.roles[0],
+                    created: user.registration.created,
+                };
+                return [user, row];
+            });
+        },
+        generate_headers(is_mobile: boolean): Column[] {
+            let new_headers = [];
+            for (const [column_key, display_name] of Object.entries(data.headers) as [HeaderKeys, string][]) {
+                if (!is_mobile || !data.headers_filter.includes(column_key)) {
+                    new_headers.push({ display_name: display_name, column_key: column_key });
+                }
+            }
+            return new_headers;
+        },
+        state_swap() {
+            const search = STATE.search;
+            const all_users = STATE.all_users;
+            if (STATE.sliding_btn_is_left) {
+                search.page = TABLE.page;
+                search.rows = TABLE.rows;
+                search.display_count = TABLE.display_count;
+                TABLE.page = all_users.page;
+                TABLE.rows = all_users.rows;
+                TABLE.display_count = all_users.display_count;
+            } else {
+                all_users.page = TABLE.page;
+                all_users.rows = TABLE.rows;
+                all_users.display_count = TABLE.display_count;
+                TABLE.page = search.page;
+                TABLE.rows = search.rows;
+                TABLE.display_count = search.display_count;
+            }
+        },
+    };
+
+    function generate_headers(is_mobile: boolean): Column<HeaderKeys>[] {
+        let new_headers = [];
+        for (const [column_key, display_name] of Object.entries(data.headers) as [HeaderKeys, string][]) {
+            if (!is_mobile || !data.headers_filter.includes(column_key)) {
+                new_headers.push({ display_name: display_name, column_key: column_key });
+            }
+        }
+        return new_headers;
+    }
