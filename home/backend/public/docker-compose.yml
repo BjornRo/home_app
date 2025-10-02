@@ -1,0 +1,107 @@
+x-extra-hosts: &extra-hosts
+  extra_hosts:
+    - "mqtt.lan:192.168.1.64"
+
+x-cert-volume: &cert-volumes
+  volumes:
+    - ./certs/letsencrypt:/etc/letsencrypt
+    - ./certs/www:/var/www/certbot
+    - ./appdata/nginx:/etc/extras
+    - ./certs/ca/root.crt:/certs/ca/root.crt:ro
+
+x-data-paths: &data-paths
+  DATA_PATH: /appdata/
+  APIPORT: 8000
+
+services:
+  # redis:
+  #   container_name: redis
+  #   image: bitnami/redis:latest
+  #   logging:
+  #     driver: none
+  #   expose:
+  #     - 6379
+  #   environment:
+  #     ALLOW_EMPTY_PASSWORD: yes
+  #     REDIS_AOF_ENABLED: yes
+  #   restart: unless-stopped
+  #   command: redis-server --save "" --appendonly no --loglevel warning --databases 6 --logfile "/dev/null" --protected-mode no
+
+  nginx:
+    depends_on:
+      - frontend
+    container_name: nginx
+    build:
+      context: ./
+      dockerfile: ./services/nginx/Dockerfile
+      args:
+        <<: *data-paths
+    ports:
+      - 80:80
+      - 443:443
+    <<: [*cert-volumes, *extra-hosts]
+    restart: unless-stopped
+    logging:
+      driver: none
+    command: '/bin/sh -c ''while :; do sleep 12h & wait $${!}; nginx -s reload; done & nginx -g "daemon off;"'''
+
+  certbot:
+    depends_on:
+      - nginx
+    container_name: certbot
+    image: certbot/certbot:latest
+    <<: *cert-volumes
+    restart: unless-stopped
+    entrypoint: >
+      /bin/sh -c 'trap exit TERM;
+      while :;
+      do certbot renew -n --quiet --webroot --webroot-path /var/www/certbot --post-hook "chmod 755 /etc/letsencrypt";
+      sleep 12h & wait $${!};
+      done;'
+
+  frontend:
+    container_name: fe
+    build:
+      context: ./services/frontend
+      dockerfile: frontend.dockerfile
+    volumes:
+      - ./services/frontend:/app
+      - ./certs/ca:/certs/ca:ro
+      - ./appdata:/appdata:ro
+    expose:
+      - 3000
+    <<: *extra-hosts
+    environment:
+      <<: *data-paths
+    restart: unless-stopped
+    command: uvicorn 'app:app' --host "0.0.0.0" --port 3000 --log-level error --workers 1
+
+  mqtt:
+    container_name: mqtt
+    build:
+      context: ./
+      dockerfile: ./services/mqtt/Dockerfile
+      args:
+        <<: *data-paths
+    volumes:
+      - ./certs/letsencrypt:/certs:ro
+      - ./certs/ca/root.crt:/usr/local/share/ca-certificates/myroot.crt:ro
+    logging:
+      driver: none
+    ports:
+      - 48883:8883
+      - 49001:9001
+    <<: *extra-hosts
+    restart: unless-stopped
+
+  ddns:
+    container_name: ddns
+    build: ./services/ddns
+    environment:
+      <<: *data-paths
+    volumes:
+      - ./appdata:/appdata:ro
+    # logging:
+    #   driver: none
+    restart: unless-stopped
+    network_mode: host

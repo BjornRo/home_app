@@ -1,0 +1,9 @@
+aiocron
+aiosqlite
+msgspec
+orjson
+uvloop
+valkey[libvalkey]
+websockets
+netifaces2
+aiofiles

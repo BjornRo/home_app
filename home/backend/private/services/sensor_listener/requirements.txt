@@ -1,0 +1,8 @@
+aiocron
+aiosqlite
+aiomqtt
+msgspec
+orjson
+uvloop
+valkey[libvalkey]
+websockets

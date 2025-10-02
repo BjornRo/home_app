@@ -1,4 +1,0 @@
-bcrypt
-orjson
-quart
-uvicorn[standard]

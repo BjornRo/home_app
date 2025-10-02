@@ -1,7 +1,0 @@
-aiocron
-aiomqtt
-asyncssh
-msgspec
-orjson
-uvloop
-websockets

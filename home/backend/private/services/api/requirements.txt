@@ -1,0 +1,18 @@
+# asyncio-connection-pool
+asyncssh
+aiosqlite
+aiosqlitepool
+aiomqtt
+bcrypt
+litestar
+msgspec
+orjson
+pyjwt
+jwcrypto
+pyopenssl
+uvicorn[standard]
+websockets
+python-jose[cryptography]
+cryptography
+valkey[libvalkey]
+aiosmtplib
