@@ -8,7 +8,6 @@ __pycache__/
 node_modules/
 certbot/
 target/
-app.db
 
 # Secret sauce #
 ################
@@ -68,6 +67,10 @@ private_encode.py
 *.dat
 *.conf
 *.lock
+*.db
+*.sqlite
+*.sqlite3
+*.toml
 # *.json
 
 
